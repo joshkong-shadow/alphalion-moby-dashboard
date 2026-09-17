@@ -6,6 +6,7 @@
   "scripts": {
     "refresh": "node scripts/fetch.mjs daily",
     "backfill": "node scripts/fetch.mjs backfill 28",
+    "publish": "node scripts/publish.mjs",
     "serve": "node scripts/serve.mjs",
     "seed": "node scripts/seed-demo.mjs",
     "test": "node --test scripts/parser.test.cjs"

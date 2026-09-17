@@ -3,30 +3,41 @@
 Daily-feedback dashboard for Alpha Lion Meta ads, powered by **MobyBots attribution** (Moby MCP).
 Three lenses: **Landing Pages** · **Persona / Concept** · **Testing Ads (kill list)**.
 
-## Architecture (house pattern, local-first variant)
+## Architecture (house pattern, encrypted-Pages variant)
 
 ```
 Moby MCP (api.mobybots.com/v2/mcp)
-        │  scripts/fetch.mjs  (per-day pulls, retries, weekly chunking)
+        │  scripts/fetch.mjs — GitHub Action daily 09:00 UTC (secrets: MOBY_MCP_KEY)
         ▼
-data/   (JSON snapshots — GITIGNORED: contains revenue data, never committed)
-        │  static fetch()
+data/   (plain JSON — GITIGNORED, exists only inside the Action run / on Josh's Mac)
+        │  scripts/publish.mjs — compact → gzip → AES-256-GCM (secret: DASH_PASSPHRASE)
         ▼
-index.html + js/  (vanilla JS + Chart.js, dark theme, IBM Plex Sans)
-        served by scripts/serve.mjs → http://localhost:8811
+enc/    (ciphertext blobs — COMMITTED; unreadable without the password)
+        ▼
+GitHub Pages → password screen → WebCrypto decrypt in the viewer's browser
 ```
 
-**Why local-first:** Moby's endpoint has no CORS support, so a hosted (GitHub Pages) page
-cannot call it from the browser, and committing revenue snapshots to any Pages branch would
-make them public. Data therefore stays on this machine. The data layer (`js/data.js`) is an
-adapter — if Moby adds CORS, direct browser mode can be swapped in and the dashboard hosted
-like im8-dashboard.
+**Why encrypted-at-rest:** GitHub Pages is always publicly reachable and a static site cannot
+enforce a login — so the password IS the decryption key (PBKDF2-SHA256 300k → AES-256-GCM).
+Wrong password = GCM auth failure = no data. Revenue numbers never exist in plaintext in the
+repo or on the wire. Thumbnails hot-load from Moby's public S3 (no auth needed).
+Moby's endpoint has no CORS, hence Action-side fetching; `js/data.js` is an adapter — local
+plain `data/` (dev) → hosted `enc/` (password) → `data-demo/` (no credentials).
+
+**Password:** stored at `~/.config/moby/dashboard-passphrase` on Josh's Mac + GitHub secret
+`DASH_PASSPHRASE`. Browser caches it in localStorage (`almoby_pass`) after first unlock.
+To rotate: change both, delete `enc/salt.json`, run `npm run publish`, push.
 
 ## Daily use
 
+Hosted: open the GitHub Pages URL, enter the password once per device. Data refreshes
+itself daily via the Action (manual trigger: Actions tab → refresh-data → Run workflow).
+
+Local dev:
 ```
 npm run refresh   # pull trailing 8 days + campaign window from Moby (~2-4 min)
-npm run serve     # dashboard on http://localhost:8811
+npm run publish   # rebuild encrypted blobs from data/
+npm run serve     # dashboard on http://localhost:8811 (uses plain data/ directly)
 ```
 
 The trailing 8 days are re-pulled every refresh because the 7-day click window keeps

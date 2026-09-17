@@ -14,6 +14,32 @@
 
   async function boot() {
     await MobyData.init();
+    if (MobyData.state.mode === 'enc') {
+      const saved = localStorage.getItem('almoby_pass');
+      if (saved) { try { await MobyData.unlock(saved); } catch { localStorage.removeItem('almoby_pass'); } }
+      if (!MobyCrypto.isUnlocked()) { renderLogin(); return; }
+    }
+    afterUnlock();
+  }
+
+  function renderLogin() {
+    $('#content').innerHTML = `<div class="login"><div class="logincard">
+      <h2><span class="lion">ALPHA LION</span> · Moby Growth Dashboard</h2>
+      <p class="dim">Enter the dashboard password. Data is encrypted at rest — the password is the decryption key.</p>
+      <input type="password" id="passInput" placeholder="Password" autofocus>
+      <button class="btn primary" id="passGo">Unlock</button>
+      <div id="passErr" class="bad" style="display:none">Wrong password — data could not be decrypted.</div>
+    </div></div>`;
+    const go = async () => {
+      const v = $('#passInput').value;
+      try { await MobyData.unlock(v); localStorage.setItem('almoby_pass', v); afterUnlock(); }
+      catch { $('#passErr').style.display = 'block'; }
+    };
+    $('#passGo').onclick = go;
+    $('#passInput').onkeydown = e => { if (e.key === 'Enter') go(); };
+  }
+
+  async function afterUnlock() {
     const days = MobyData.state.meta.days || [];
     if (!days.length) { $('#content').innerHTML = '<div class="empty">No data. Run: node scripts/fetch.mjs backfill 28</div>'; return; }
     S.end = days[days.length - 1];

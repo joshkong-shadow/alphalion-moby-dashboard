@@ -1,0 +1,36 @@
+name: refresh-data
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 09:00 UTC = 2am LA (tenant day complete) = 4am Bogotá = 5pm MYT
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pull trailing days + campaigns from Moby
+        env:
+          MOBY_MCP_KEY: ${{ secrets.MOBY_MCP_KEY }}
+        run: node scripts/fetch.mjs daily
+      - name: Compact + encrypt
+        env:
+          DASH_PASSPHRASE: ${{ secrets.DASH_PASSPHRASE }}
+        run: node scripts/publish.mjs
+      - name: Commit encrypted blobs
+        run: |
+          git config user.name "moby-refresh-bot"
+          git config user.email "actions@github.com"
+          git add enc/
+          git diff --cached --quiet && echo "no changes" || git commit -m "Data refresh $(date -u +%F)"
+          git push

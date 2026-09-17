@@ -11,9 +11,22 @@
   }
 
   async function init() {
-    try { state.meta = await fetchJson('data/meta.json'); state.base = 'data'; }
-    catch { state.meta = await fetchJson('data-demo/meta.json'); state.base = 'data-demo'; state.demo = true; }
+    // source priority: local plain data/ -> hosted encrypted enc/ (needs unlock) -> demo
+    try { state.meta = await fetchJson('data/meta.json'); state.base = 'data'; state.mode = 'plain'; }
+    catch {
+      try { await fetchJson('enc/salt.json'); state.mode = 'enc'; return state; } // meta comes after unlock()
+      catch { state.meta = await fetchJson('data-demo/meta.json'); state.base = 'data-demo'; state.demo = true; state.mode = 'plain'; }
+    }
     try { state.campaigns = await fetchJson(`${state.base}/campaigns.json`); }
+    catch { state.campaigns = { campaigns: [] }; }
+    buildPlacement();
+    return state;
+  }
+
+  async function unlock(pass) {
+    await MobyCrypto.unlock(pass); // throws on wrong passphrase
+    state.meta = await MobyCrypto.fetchDecrypt('enc/meta.bin');
+    try { state.campaigns = await MobyCrypto.fetchDecrypt('enc/campaigns.bin'); }
     catch { state.campaigns = { campaigns: [] }; }
     buildPlacement();
     return state;
@@ -37,8 +50,11 @@
     const days = (state.meta.days || []).filter(d => d >= start && d <= end);
     const missing = days.filter(d => !state.days[d]);
     await Promise.all(missing.map(async d => {
-      try { state.days[d] = await fetchJson(`${state.base}/days/${d}.json`); }
-      catch { state.days[d] = { date: d, creatives: [] }; }
+      try {
+        state.days[d] = state.mode === 'enc'
+          ? await MobyCrypto.fetchDecrypt(`enc/days/${d}.bin`)
+          : await fetchJson(`${state.base}/days/${d}.json`);
+      } catch { state.days[d] = { date: d, creatives: [] }; }
     }));
     return days.map(d => state.days[d]);
   }
@@ -71,5 +87,5 @@
   const METRICS = ['spend','revenue','orders','ncOrders','ncRevenue','retOrders','retRevenue','platformOrders','platformRevenue','users','newVisitors','recurringVisitors','impressions','clicks','outboundClicks','vHook','vRet','vTot'];
   function pick(x) { const o = {}; for (const k of METRICS) o[k] = x[k] || 0; return o; }
 
-  g.MobyData = { init, loadRange, adDayRows, state, METRICS };
+  g.MobyData = { init, unlock, loadRange, adDayRows, state, METRICS };
 })(globalThis);
