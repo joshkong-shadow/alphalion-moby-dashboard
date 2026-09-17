@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alpha Lion · Moby Growth Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1><span class="lion">ALPHA LION</span> · Moby Growth Dashboard</h1>
+    <span class="badge">Meta · Moby attribution</span>
+    <span class="badge demo" id="demoBadge" style="display:none">DEMO DATA</span>
+    <div class="meta-info" id="refreshInfo">loading…</div>
+  </div>
+  <div class="hrow">
+    <div class="chips" id="funnels"></div>
+    <div class="dates">
+      <input type="date" id="dateStart"> <span class="dim">→</span> <input type="date" id="dateEnd">
+      <button class="chip" data-preset="7">7d</button>
+      <button class="chip" data-preset="14">14d</button>
+      <button class="chip" data-preset="28">28d</button>
+    </div>
+    <button class="btn" id="downloadBtn" style="margin-left:auto">⬇ Summary note</button>
+  </div>
+  <div class="tabs">
+    <button class="tab on" data-tab="landers">Landing Pages</button>
+    <button class="tab" data-tab="concepts">Persona / Concept</button>
+    <button class="tab" data-tab="testing">Testing Ads</button>
+  </div>
+</header>
+<main><div id="content"><div class="empty">Loading…</div></div></main>
+<div id="overlay"></div>
+<div id="drawer"></div>
+<script src="vendor/chart.umd.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/data.js"></script>
+<script src="js/agg.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

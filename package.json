@@ -1,0 +1,13 @@
+{
+  "name": "alphalion-moby-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Alpha Lion Moby-attribution growth dashboard: landing pages, persona/concept, testing-ads kill list",
+  "scripts": {
+    "refresh": "node scripts/fetch.mjs daily",
+    "backfill": "node scripts/fetch.mjs backfill 28",
+    "serve": "node scripts/serve.mjs",
+    "seed": "node scripts/seed-demo.mjs",
+    "test": "node --test scripts/parser.test.cjs"
+  }
+}
